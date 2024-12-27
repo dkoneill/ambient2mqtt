@@ -1,6 +1,10 @@
 Ambient2MQTT
 ============
 
+The San Diego Rowing Club forked and modified this great piece of software
+to modify a few MQTT parameters to match their long term data acquired
+via the AmbientWeather.net API.
+
 Patrick Wagstrom &lt;patrick@wagstrom.net&gt;
 
 October 2021
