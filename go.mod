@@ -1,4 +1,4 @@
-module github.com/pridkett/ambient2mqtt
+module github.com/dkoneill/ambient2mqtt
 
 go 1.17
 

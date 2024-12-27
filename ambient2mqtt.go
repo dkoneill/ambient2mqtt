@@ -261,8 +261,48 @@ func arrayContains(arrayType interface{}, item interface{}) bool {
 
 func processData(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
+
 	logger.Infof("Request: host=%s, user-agent=%s url=%s", r.RemoteAddr, r.UserAgent(), r.URL)
 
+	if len(query) == 0 {
+		panic("could not parse query url")
+	}
+	stopic := fmt.Sprintf("%s/%s", config.Mqtt.TopicPrefix, config.Mqtt.Topic)
+	finalData := make(map[string]interface{})
+	for key, val := range query {
+		switch key {
+		case "PASSKEY", "stationtype":
+			continue
+		case "dateutc":
+			layout := "2006-01-02 15:04:05"
+			t, err := time.ParseInLocation(layout, val[0], time.UTC)
+			if err == nil {
+				finalData[key] = t.UnixMilli()
+				finalData["date"] = t.Format(time.RFC3339)
+			}
+		default:
+			var numVal float64
+			fmt.Sscanf(val[0], "%f", &numVal) // Converts the string to float64
+			finalData[key] = numVal
+		}
+	}
+	// calculate dewpoint which the Ambient.net api used to return
+	if tempf, ok1 := finalData["tempf"]; ok1 {
+	  if humidity, ok2 := finalData["humidity"]; ok2 {
+	     var dewpoint float64
+	     dewpoint = tempf.(float64) - (( 100.0 - humidity.(float64) ) / 5.0) 
+	     dewpoint,_ = strconv.ParseFloat(fmt.Sprintf("%.1f", dewpoint), 64)
+	     finalData["dewPoint"] = dewpoint
+	  }
+	}
+
+	jsonData, err := json.Marshal(finalData)
+	if err == nil {
+		logger.Infof("topic=%s, jsondata >%s<", stopic, jsonData)
+		token := client.Publish(stopic, 0, false, jsonData)
+		token.Wait()
+	}
+/*
 	for key, val := range query {
 		logger.Infof("%s = %s", key, val[0])
 		topic := fmt.Sprintf("%s/%s/%s", config.Mqtt.TopicPrefix, config.Mqtt.Topic, key)
@@ -270,6 +310,7 @@ func processData(w http.ResponseWriter, r *http.Request) {
 		token := client.Publish(topic, 0, false, val[0])
 		token.Wait()
 	}
+*/
 
 	// HomeAssistant has a very specific way it wants things to appear on the MQTT bus
 	if config.Hass.Discovery {
@@ -312,7 +353,7 @@ func processData(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	write_influx(query)
+//	write_influx(query)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)

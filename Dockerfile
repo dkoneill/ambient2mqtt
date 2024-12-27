@@ -12,5 +12,6 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /ambient2mqtt
 FROM scratch
 
 COPY --from=0 /ambient2mqtt /ambient2mqtt
+ADD config.toml /config.toml
 
 CMD ["/ambient2mqtt", "-config", "/config.toml"]

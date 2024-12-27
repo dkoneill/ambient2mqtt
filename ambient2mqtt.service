@@ -1,0 +1,14 @@
+[Unit]
+Description=Ambient Weather Station direct to MQTT service
+After=network.service
+Wants=network-online.target
+
+[Service]
+User=admin
+Type=simple
+ExecStart=/home/admin/ambient2mqtt/ambient2mqtt -config sdrc_config.toml
+WorkingDirectory=/home/admin/ambient2mqtt
+Restart=always
+RestartSec=60
+[Install]
+WantedBy=multi-user.target
